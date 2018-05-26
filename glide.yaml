@@ -1,0 +1,4 @@
+package: github.com/kaplanmaxe/go-carb
+import:
+- package: github.com/joho/godotenv
+  version: ^1.2.0
