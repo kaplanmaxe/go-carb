@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 
@@ -34,10 +33,8 @@ func main() {
 		Ask: ask,
 	}
 
-	fmt.Println(krakenMarket, quadrigaMarket, arbMarket.CalculateSpread())
+	fmt.Println(arbMarket.CalculateSpread(), arbMarket.CalculateConfidence())
 
-	resp := kraken.MarketBuy("0.001")
-	if len(resp.Errors) > 0 {
-		log.Fatal("An error occured on Kraken: " + resp.Errors[0])
-	}
+	resp, _ := kraken.GetTradeBalance()
+	fmt.Println(resp.ZCAD)
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -51,6 +52,15 @@ type krakenOrder struct {
 	Nonce     string `json:"nonce"`
 }
 
+type BalanceResponse struct {
+	ZCAD string `json:"ZCAD"`
+}
+
+type OrderResponse struct {
+	Txid  []string `json:"txid"`
+	Descr []string `json:"descr"`
+}
+
 // GetMarket returns a market from Kraken
 func (a API) GetMarket() resolver.Market {
 	res, err := http.Get("https://api.kraken.com/0/public/Ticker?pair=" + a.Market)
@@ -66,32 +76,50 @@ func (a API) GetMarket() resolver.Market {
 	}
 }
 
+// GetTradeBalance returns balance of account
+func (a API) GetTradeBalance() (*BalanceResponse, error) {
+	resp, error := a.makeRequest("/0/private/Balance", url.Values{}, &BalanceResponse{})
+	return resp.(*BalanceResponse), error
+}
+
 // MarketBuy performs a market buy on kraken
-func (a API) MarketBuy(amount string) ResponseGeneric {
+func (a API) MarketBuy(amount string) (*OrderResponse, error) {
 	order := url.Values{
 		"pair":      {a.Market},
 		"ordertype": {"market"},
 		"type":      {"buy"},
 		"volume":    {"0.002"},
 	}
-	return a.makeRequest("https://api.kraken.com/0/private/AddOrder", order)
-
+	resp, error := a.makeRequest("/0/private/AddOrder", order, &OrderResponse{})
+	return resp.(*OrderResponse), error
 }
 
-func (a API) makeRequest(url string, payload url.Values) ResponseGeneric {
+func (a API) makeRequest(url string, payload url.Values, returnTyp interface{}) (interface{}, error) {
+	urlPrefix := "https://api.kraken.com"
 	client := &http.Client{}
 	nonce := fmt.Sprintf("%d", time.Now().UnixNano())
 	payload.Add("nonce", nonce)
-	req, _ := http.NewRequest("POST", url, strings.NewReader(payload.Encode()))
-	sig := a.generateSignature("/0/private/AddOrder", nonce, payload)
+	req, _ := http.NewRequest("POST", urlPrefix+url, strings.NewReader(payload.Encode()))
+	sig := a.generateSignature(url, nonce, payload)
 	req.Header.Add("API-Key", a.APIKey)
 	req.Header.Add("Api-Sign", sig)
 	req.Header.Add("User-Agent", "go-carb")
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	body, _ := ioutil.ReadAll(resp.Body)
+
 	var response ResponseGeneric
+	response.Result = returnTyp
 	json.Unmarshal(body, &response)
-	return response
+
+	var respError error
+	if len(response.Errors) > 0 {
+		respError = errors.New(response.Errors[0])
+	}
+
+	return response.Result, respError
 }
 
 func (a API) generateSignature(uri string, nonce string, order url.Values) string {
