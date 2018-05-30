@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 
@@ -33,12 +34,10 @@ func main() {
 		Ask: ask,
 	}
 
-	resp := kraken.MarketBuy("0.001")
-	fmt.Println(resp)
 	fmt.Println(krakenMarket, quadrigaMarket, arbMarket.CalculateSpread())
 
-	// resp := resolver.GetMarket("USDT-DASH")
-	// market := analyzer.Market{Bid: resp.Result.Bid, Ask: resp.Result.Ask}
-	// bittrex.LimitSell(market.Ask)
-	// fmt.Println(spread)
+	resp := kraken.MarketBuy("0.001")
+	if len(resp.Errors) > 0 {
+		log.Fatal("An error occured on Kraken: " + resp.Errors[0])
+	}
 }

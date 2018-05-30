@@ -23,7 +23,8 @@ type API struct {
 	Market    string
 }
 
-type krakenResponseGeneric struct {
+// ResponseGeneric is the generic api response from Kraken
+type ResponseGeneric struct {
 	Errors []string    `json:"error"`
 	Result interface{} `json:"result"`
 }
@@ -65,30 +66,39 @@ func (a API) GetMarket() resolver.Market {
 	}
 }
 
-func (a API) MarketBuy(amount string) krakenResponseGeneric {
+// MarketBuy performs a market buy on kraken
+func (a API) MarketBuy(amount string) ResponseGeneric {
+	order := url.Values{
+		"pair":      {a.Market},
+		"ordertype": {"market"},
+		"type":      {"buy"},
+		"volume":    {"0.002"},
+	}
+	return a.makeRequest("https://api.kraken.com/0/private/AddOrder", order)
+
+}
+
+func (a API) makeRequest(url string, payload url.Values) ResponseGeneric {
 	client := &http.Client{}
 	nonce := fmt.Sprintf("%d", time.Now().UnixNano())
-
-	order := url.Values{
-		"pair":      {"XBTUSD"},
-		"ordertype": {"market"},
-		// "price":     {amount},
-		"type":   {"buy"},
-		"volume": {"0.002"},
-		"nonce":  {nonce},
-	}
-	req, _ := http.NewRequest("POST", "https://api.kraken.com/0/private/AddOrder", strings.NewReader(order.Encode()))
-	sig := a.generateSignature("/0/private/AddOrder", nonce, order)
-	fmt.Println(a.APIKey)
+	payload.Add("nonce", nonce)
+	req, _ := http.NewRequest("POST", url, strings.NewReader(payload.Encode()))
+	sig := a.generateSignature("/0/private/AddOrder", nonce, payload)
 	req.Header.Add("API-Key", a.APIKey)
 	req.Header.Add("Api-Sign", sig)
 	req.Header.Add("User-Agent", "go-carb")
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
-	var response krakenResponseGeneric
+	var response ResponseGeneric
 	json.Unmarshal(body, &response)
 	return response
+}
 
+func (a API) generateSignature(uri string, nonce string, order url.Values) string {
+	shaSum := getSha256([]byte(nonce + order.Encode()))
+	secret, _ := base64.StdEncoding.DecodeString(a.APISecret)
+	macSum := getHMacSha512(append([]byte(uri), shaSum...), []byte(secret))
+	return base64.StdEncoding.EncodeToString(macSum)
 }
 
 // getSha256 creates a sha256 hash for given []byte
@@ -103,11 +113,4 @@ func getHMacSha512(message, secret []byte) []byte {
 	mac := hmac.New(sha512.New, secret)
 	mac.Write(message)
 	return mac.Sum(nil)
-}
-
-func (a API) generateSignature(uri string, nonce string, order url.Values) string {
-	shaSum := getSha256([]byte(nonce + order.Encode()))
-	secret, _ := base64.StdEncoding.DecodeString(a.APISecret)
-	macSum := getHMacSha512(append([]byte(uri), shaSum...), []byte(secret))
-	return base64.StdEncoding.EncodeToString(macSum)
 }
