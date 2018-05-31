@@ -53,7 +53,8 @@ type krakenOrder struct {
 }
 
 type BalanceResponse struct {
-	ZCAD string `json:"ZCAD"`
+	CAD string `json:"ZCAD"`
+	BTC string `json:"XXBT"`
 }
 
 type OrderResponse struct {
@@ -88,7 +89,7 @@ func (a API) MarketBuy(amount string) (*OrderResponse, error) {
 		"pair":      {a.Market},
 		"ordertype": {"market"},
 		"type":      {"buy"},
-		"volume":    {"0.002"},
+		"volume":    {amount},
 	}
 	resp, error := a.makeRequest("/0/private/AddOrder", order, &OrderResponse{})
 	return resp.(*OrderResponse), error

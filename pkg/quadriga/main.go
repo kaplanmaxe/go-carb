@@ -57,7 +57,6 @@ func (a API) GetMarket() resolver.Market {
 // GetBalance returns balance from Quadriga
 func (a API) GetBalance() *BalanceResponse {
 	bal := a.makeRequest("/balance", make(map[string]string), &BalanceResponse{})
-	fmt.Println(bal)
 	return bal.(*BalanceResponse)
 }
 
@@ -85,6 +84,7 @@ func (a API) makeRequest(uri string, payload map[string]string, returnTyp interf
 		panic(err)
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
+
 	var returnData interface{}
 	returnData = returnTyp
 	json.Unmarshal(body, &returnData)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 
@@ -33,9 +34,25 @@ func main() {
 		Ask: ask,
 	}
 
-	fmt.Println(arbMarket.CalculateSpread(), arbMarket.CalculateConfidence())
+	confidence := arbMarket.CalculateConfidence()
 
-	// resp, _ := kraken.GetBalance()
-	resp := quadriga.MarketSell("0.001")
-	fmt.Println(resp)
+	if confidence <= 0 {
+		fmt.Println("Spread too low")
+		return
+	}
+
+	quadrigaBalance := quadriga.GetBalance()
+
+	quadrigaBTCFloat, _ := strconv.ParseFloat(quadrigaBalance.BTC, 64)
+	tradeAmount := fmt.Sprintf("%.3f", quadrigaBTCFloat*confidence)
+
+	krakenTrade, err := kraken.MarketBuy(tradeAmount)
+	if err != nil {
+		log.Fatal("error occurred on kraken trade", err, tradeAmount)
+	}
+	quadrigaTrade := quadriga.MarketSell(tradeAmount)
+
+	if quadrigaTrade.Amount != "" && len(krakenTrade.Txid) > 0 {
+		fmt.Println("Arb successful!")
+	}
 }
