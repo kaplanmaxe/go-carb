@@ -76,8 +76,8 @@ func (a API) GetMarket() resolver.Market {
 	}
 }
 
-// GetTradeBalance returns balance of account
-func (a API) GetTradeBalance() (*BalanceResponse, error) {
+// GetBalance returns balance of account
+func (a API) GetBalance() (*BalanceResponse, error) {
 	resp, error := a.makeRequest("/0/private/Balance", url.Values{}, &BalanceResponse{})
 	return resp.(*BalanceResponse), error
 }

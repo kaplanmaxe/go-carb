@@ -19,8 +19,8 @@ func main() {
 		Market:    "XBTCAD",
 	}
 	quadriga := quadriga.API{
-		APIKey:    os.Getenv("KRAKEN_API_KEY"),
-		APISecret: os.Getenv("KRAKEN_API_SECRET"),
+		APIKey:    os.Getenv("QUADRIGA_API_KEY"),
+		APISecret: os.Getenv("QUADRIGA_API_SECRET"),
 		Market:    "btc_cad",
 	}
 	krakenMarket := kraken.GetMarket()
@@ -35,6 +35,7 @@ func main() {
 
 	fmt.Println(arbMarket.CalculateSpread(), arbMarket.CalculateConfidence())
 
-	resp, _ := kraken.GetTradeBalance()
-	fmt.Println(resp.ZCAD)
+	// resp, _ := kraken.GetBalance()
+	resp := quadriga.MarketSell("0.001")
+	fmt.Println(resp)
 }
